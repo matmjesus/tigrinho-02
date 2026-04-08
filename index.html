@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Golden Strike - Fokus Edition</title>
+    <title>Golden Strike - Fokus</title>
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Righteous&display=swap" rel="stylesheet">
     <style>
@@ -22,19 +22,22 @@
             touch-action: manipulation; 
         }
         
+        /* Moldura da Máquina similar à imagem */
         .machine-frame {
-            width: 95vw; height: 90vh; max-width: 500px;
+            width: 95vw; height: 90vh; max-width: 800px;
             display: flex; flex-direction: column;
-            background: #111; border: 2px solid var(--gold); border-radius: 15px; padding: 10px;
+            background: #0a0a0a; border: 2px solid var(--gold); border-radius: 20px; padding: 15px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
         }
 
         .reels-container { 
             display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; 
-            flex-grow: 1; min-height: 0; margin: 10px 0;
+            flex-grow: 1; min-height: 0; margin-top: 10px;
+            border-radius: 10px; overflow: hidden;
         }
 
         .reel-window { 
-            background: #050505; border: 1px solid #333; border-radius: 5px; 
+            background: #050505; border-right: 1px solid #1a1a1a; 
             position: relative; overflow: hidden; height: 100%; 
         }
         
@@ -45,55 +48,58 @@
         }
 
         .symbol { 
-            height: 80px; /* Altura fixa para evitar congelamento de cálculo */
+            height: 12vh; /* Altura responsiva baseada na tela */
             display: flex; align-items: center; justify-content: center;
-            font-size: 1.5rem; transition: opacity 0.3s, transform 0.3s;
+            font-size: clamp(1.5rem, 5vh, 3rem); 
+            transition: opacity 0.3s;
         }
 
-        .winner-focus { filter: drop-shadow(0 0 10px var(--gold)); transform: scale(1.2); z-index: 10; opacity: 1 !important; }
+        .winner-focus { filter: drop-shadow(0 0 15px var(--gold)); transform: scale(1.1); z-index: 10; opacity: 1 !important; }
 
         .btn-spin { 
             background: linear-gradient(180deg, #ffcc00 0%, #b38f00 100%);
-            color: #000; padding: 15px; border-radius: 10px; 
+            color: #000; padding: 18px; border-radius: 15px; 
             font-weight: 900; box-shadow: 0 4px 0 #7a6100; width: 100%;
-            text-transform: uppercase; border: none;
+            text-transform: uppercase; border: none; font-size: 1.2rem;
+            margin-top: 10px;
         }
-        .btn-spin:disabled { background: #444; color: #888; box-shadow: none; opacity: 0.5; }
+        .btn-spin:active { transform: translateY(2px); box-shadow: 0 2px 0 #7a6100; }
+        .btn-spin:disabled { background: #333; color: #666; box-shadow: none; opacity: 0.6; }
 
         #overlay { 
-            position: fixed; inset: 0; background: rgba(0,0,0,0.9); 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.95); 
             display: none; flex-direction: column; justify-content: center; 
-            align-items: center; z-index: 1000; padding: 20px;
+            align-items: center; z-index: 1000;
         }
     </style>
 </head>
 <body>
 
 <div id="overlay">
-    <h1 id="res-title" class="text-3xl font-black mb-6 text-yellow-500 text-center"></h1>
-    <button onclick="closeResult()" class="btn-spin !w-48">COLETAR</button>
+    <h1 id="res-title" class="text-4xl font-black mb-8 text-yellow-500 text-center uppercase"></h1>
+    <button onclick="closeResult()" class="btn-spin !w-64">COLETAR</button>
 </div>
 
 <div class="machine-frame">
-    <div class="flex justify-between items-center px-1">
-        <h2 class="font-righteous text-yellow-500 text-xs">GOLDEN STRIKE</h2>
+    <div class="flex justify-between items-end px-2">
+        <h2 class="font-righteous text-yellow-500 text-sm tracking-widest uppercase">REAL STRIKE</h2>
         <div class="text-right">
-            <span id="balance" class="text-green-400 font-bold text-lg">1000</span>
+            <span class="text-[10px] text-gray-500 block uppercase font-bold">Saldo</span>
+            <span id="balance" class="text-green-400 font-bold text-2xl leading-none">1000</span>
         </div>
     </div>
 
     <div class="reels-container" id="reelsContainer"></div>
 
-    <button id="spinBtn" onclick="startSpin()" class="btn-spin">GIRAR</button>
+    <button id="spinBtn" onclick="startSpin()" class="btn-spin">GIRAR TUDO</button>
 </div>
 
 <script>
     const EMOJIS = ['🍒', '💎', '7️⃣', '🔔', '⭐', '🍋'];
-    const SYMBOL_HEIGHT = 80; // Hardcoded para estabilidade mobile
+    let SYMBOL_HEIGHT = 0;
     let balance = 1000;
     let isSpinning = false;
     let results = [];
-    let animationFrames = [];
 
     function init() {
         const container = document.getElementById('reelsContainer');
@@ -104,10 +110,14 @@
                     <div id="strip${i}" class="reel-strip" style="transform: translateY(0px)"></div>
                 </div>`;
             const strip = document.getElementById(`strip${i}`);
-            // Criar uma fita longa o suficiente
-            const longList = [...EMOJIS, ...EMOJIS, ...EMOJIS, ...EMOJIS, ...EMOJIS, ...EMOJIS];
-            strip.innerHTML = longList.map(s => `<div class="symbol">${s}</div>`).join('');
+            // Criar sequência para animação fluida
+            const list = [...EMOJIS, ...EMOJIS, ...EMOJIS, ...EMOJIS, ...EMOJIS];
+            strip.innerHTML = list.map(s => `<div class="symbol">${s}</div>`).join('');
         }
+        // Medir altura real após renderização
+        setTimeout(() => {
+            SYMBOL_HEIGHT = document.querySelector('.symbol').offsetHeight;
+        }, 100);
     }
     
     window.onload = init;
@@ -120,60 +130,26 @@
         document.getElementById('balance').textContent = balance;
         document.getElementById('spinBtn').disabled = true;
 
-        const isForcedWin = Math.random() < 0.95;
-        const winSymbol = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
-        results = [];
+        // Probabilidade equiprovável (Difícil)
+        results = Array.from({length: 6}, () => EMOJIS[Math.floor(Math.random() * EMOJIS.length)]);
 
-        // Inicia animação
+        // Inicia o giro visual
         for (let i = 0; i < 6; i++) {
             const strip = document.getElementById(`strip${i}`);
             strip.style.transition = "none";
-            results[i] = isForcedWin ? winSymbol : EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
-            runAnimation(i);
+            strip.style.transform = `translateY(0px)`;
+            
+            // Forçar reflow para o navegador entender o reset
+            strip.offsetHeight; 
+            
+            // Aplicar animação de "spin"
+            strip.style.transition = `transform ${1.5 + (i * 0.3)}s cubic-bezier(0.45, 0.05, 0.55, 0.95)`;
+            const stopPos = (EMOJIS.length * SYMBOL_HEIGHT * 2) + (EMOJIS.indexOf(results[i]) * SYMBOL_HEIGHT);
+            strip.style.transform = `translateY(-${stopPos}px)`;
         }
 
-        // Para os rolos um por um
-        for (let i = 0; i < 6; i++) {
-            await new Promise(r => setTimeout(r, 400));
-            stopReel(i, results[i]);
-        }
-    }
-
-    function runAnimation(i) {
-        const strip = document.getElementById(`strip${i}`);
-        let pos = 0;
-        const speed = 15;
-        
-        function animate() {
-            if (!isSpinning && results[i] === null) return; 
-            pos -= speed;
-            if (pos <= -(EMOJIS.length * SYMBOL_HEIGHT)) pos = 0;
-            strip.style.transform = `translateY(${pos}px)`;
-            animationFrames[i] = requestAnimationFrame(animate);
-        }
-        animate();
-    }
-
-    function stopReel(i, targetEmoji) {
-        cancelAnimationFrame(animationFrames[i]);
-        const strip = document.getElementById(`strip${i}`);
-        const windowH = strip.parentElement.clientHeight;
-        const centerOffset = (windowH / 2) - (SYMBOL_HEIGHT / 2);
-        
-        const targetIdx = EMOJIS.indexOf(targetEmoji);
-        
-        strip.style.transition = "transform 0.6s cubic-bezier(0.23, 1, 0.32, 1)";
-        strip.style.transform = `translateY(${centerOffset - (targetIdx * SYMBOL_HEIGHT)}px)`;
-
-        // Highlight
-        setTimeout(() => {
-            const symbols = strip.querySelectorAll('.symbol');
-            symbols.forEach((s, idx) => {
-                if (idx === targetIdx) s.classList.add('winner-focus');
-                else s.style.opacity = "0.2";
-            });
-            if (i === 5) finishGame();
-        }, 600);
+        // Aguarda a última coluna parar
+        setTimeout(finishGame, 1.5 + (5 * 0.3) * 1000 + 500);
     }
 
     function finishGame() {
@@ -181,16 +157,15 @@
         const resTitle = document.getElementById('res-title');
         
         if (allEqual) {
-            balance += 5000;
-            resTitle.innerHTML = "VITÓRIA ÉPICA!<br>+5000";
+            balance += 10000;
+            resTitle.innerHTML = "Vitória Épica!<br><span class='text-green-400'>+10.000</span>";
+            document.querySelectorAll('.symbol').forEach(s => s.classList.add('winner-focus'));
         } else {
-            resTitle.innerHTML = "QUASE LÁ!";
+            resTitle.innerHTML = "Não foi desta vez<br><span class='text-sm text-gray-400'>Tente novamente</span>";
         }
         
         document.getElementById('balance').textContent = balance;
-        setTimeout(() => {
-            document.getElementById('overlay').style.display = 'flex';
-        }, 500);
+        document.getElementById('overlay').style.display = 'flex';
     }
 
     function closeResult() {
