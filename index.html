@@ -9,105 +9,75 @@
     <style>
         :root { --gold: #ffcc00; --neon-red: #ff3131; --neon-green: #39ff14; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
-        
-        body { 
-            background: #000; 
-            color: white; 
-            font-family: 'Montserrat', sans-serif; 
-            height: 100vh; 
-            height: 100dvh; 
-            width: 100vw; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            overflow: hidden; 
-            touch-action: manipulation;
-        }
+        body { background: #000; color: white; font-family: 'Montserrat', sans-serif; height: 100dvh; width: 100vw; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         
         .machine-frame {
-            width: 98vw; height: 95vh; max-width: 800px;
-            display: grid; grid-template-rows: auto 1fr auto; gap: 10px;
-            background: #111; border: 2px solid var(--gold); border-radius: 15px; padding: 10px; position: relative;
-            box-shadow: 0 0 30px rgba(255, 204, 0, 0.2);
+            width: 98vw; height: 96vh; max-width: 1000px;
+            display: grid; grid-template-rows: 40px 1fr 60px; gap: 5px;
+            background: #111; border: 2px solid var(--gold); border-radius: 15px; padding: 8px; position: relative;
         }
 
-        .reels-container { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; height: 100%; min-height: 0; }
-        .reel-col { display: grid; grid-template-rows: 1fr 50px; gap: 8px; height: 100%; overflow: hidden; }
+        .reels-container { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; min-height: 0; }
+        .reel-col { display: grid; grid-template-rows: 1fr 45px; gap: 5px; height: 100%; overflow: hidden; }
         .reel-window { background: #050505; border: 1px solid #333; border-radius: 8px; position: relative; overflow: hidden; }
         
         .win-line {
-            position: absolute; top: 50%; left: 0; right: 0; height: 2px;
-            background: var(--gold); box-shadow: 0 0 10px var(--gold);
-            z-index: 20; pointer-events: none; opacity: 0.6;
+            position: absolute; top: 50%; left: 0; right: 0; height: 33.3%; transform: translateY(-50%);
+            border-top: 2px solid var(--gold); border-bottom: 2px solid var(--gold);
+            background: rgba(255, 204, 0, 0.05); z-index: 20; pointer-events: none;
         }
 
         .reel-strip { display: flex; flex-direction: column; will-change: transform; }
         .symbol { 
-            height: 80px; 
-            display: flex; align-items: center; justify-content: center;
-            font-size: clamp(1.5rem, 6vh, 2.8rem); 
+            height: calc((96vh - 40px - 60px - 65px) / 3); 
+            min-height: 50px; display: flex; align-items: center; justify-content: center;
+            font-size: clamp(1.2rem, 5vh, 2.5rem); 
             transition: all 0.3s;
+            opacity: 1;
         }
 
         .symbol.winner-focus {
-            filter: drop-shadow(0 0 15px var(--gold));
-            transform: scale(1.25);
-            z-index: 30;
             opacity: 1 !important;
+            filter: drop-shadow(0 0 15px var(--gold));
+            transform: scale(1.2);
+            z-index: 30;
         }
 
-        .btn-stop { background: #222; border: 2px solid #444; border-radius: 8px; color: white; font-weight: 900; font-size: 10px; cursor: pointer; transition: 0.2s; }
-        .btn-stop.active { 
-            background: var(--neon-red); 
-            border-color: #fff; 
-            box-shadow: 0 0 15px var(--neon-red); 
-            animation: blink 0.4s infinite alternate; 
-        }
+        .btn-stop { background: #222; border: 2px solid #444; border-radius: 8px; color: white; font-weight: 900; font-size: 10px; cursor: pointer; z-index: 40; transition: 0.2s; }
+        .btn-stop.active { background: var(--neon-red); border-color: #fff; box-shadow: 0 0 15px var(--neon-red); animation: blink 0.5s infinite alternate; }
         
-        @keyframes blink { from { opacity: 1; } to { opacity: 0.5; } }
+        @keyframes blink { from { opacity: 1; } to { opacity: 0.6; } }
 
-        .btn-spin { 
-            background: linear-gradient(180deg, #ffcc00 0%, #b38f00 100%);
-            color: #000; padding: 12px 35px; border-radius: 30px; 
-            font-weight: 900; border: none; box-shadow: 0 4px 0 #7a6100; 
-            cursor: pointer; text-transform: uppercase; transition: 0.1s;
-        }
-        .btn-spin:active { transform: translateY(2px); box-shadow: 0 2px 0 #7a6100; }
-        .btn-spin:disabled { background: #444; color: #888; box-shadow: none; transform: translateY(2px); cursor: not-allowed; }
+        .btn-spin { background: var(--gold); color: #000; padding: 10px 30px; border-radius: 30px; font-weight: 900; border: none; box-shadow: 0 4px 0 #b38f00; cursor: pointer; }
+        .btn-spin:disabled { background: #444; color: #888; box-shadow: none; transform: translateY(2px); }
 
-        #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; text-align: center; }
+        #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; }
         .animate-win { animation: pulse-gold 0.6s infinite; }
-        @keyframes pulse-gold { 0%, 100% { transform: scale(1.25); } 50% { transform: scale(1.45); filter: drop-shadow(0 0 25px var(--gold)); } }
+        @keyframes pulse-gold { 0%, 100% { transform: scale(1.2); } 50% { transform: scale(1.4); filter: drop-shadow(0 0 20px var(--gold)); } }
     </style>
 </head>
 <body>
 
 <div id="overlay">
-    <h1 id="res-title" class="text-4xl font-black mb-6 px-4"></h1>
-    <button onclick="closeResult()" class="btn-spin">COLETAR PRÊMIO</button>
+    <h1 id="res-title" class="text-4xl font-black mb-6 text-center"></h1>
+    <button onclick="closeResult()" class="btn-spin">CONTINUAR</button>
 </div>
 
 <div class="machine-frame">
-    <div class="flex justify-between items-center px-2 py-1">
-        <h2 class="font-righteous text-yellow-500 text-sm tracking-widest">GOLDEN STRIKE</h2>
+    <div class="flex justify-between items-center px-2">
+        <h2 class="font-righteous text-yellow-500 text-xs">GOLDEN STRIKE</h2>
         <div class="text-right">
-            <span class="text-[10px] text-gray-500 block leading-none">SALDO ATUAL</span>
-            <span id="balance" class="text-green-400 font-bold text-xl">1000</span>
+            <span class="text-[8px] text-gray-500 block">SALDO</span>
+            <span id="balance" class="text-green-400 font-bold text-lg">1000</span>
         </div>
     </div>
 
     <div class="reels-container" id="reelsContainer"></div>
 
-    <div class="flex justify-around items-center bg-[#1a1a1a] p-3 rounded-xl border-t border-gray-800">
-        <div class="text-center">
-            <span class="text-[10px] text-gray-500 block">BET</span>
-            <span class="font-bold text-base">10</span>
-        </div>
+    <div class="flex justify-around items-center bg-[#1a1a1a] rounded-lg">
+        <div class="text-center"><span class="text-[8px] text-gray-500 block">BET</span><span class="font-bold text-sm">10</span></div>
         <button id="spinBtn" onclick="startSpin()" class="btn-spin text-sm">GIRAR TUDO</button>
-        <div class="text-center">
-            <span class="text-[10px] text-red-500 block font-bold">GANHO MÁX</span>
-            <span class="text-yellow-500 font-bold text-base">5000</span>
-        </div>
+        <div class="text-center"><span class="text-[8px] text-gray-500 block text-red-500">WIN 6x</span><span class="text-yellow-500 font-bold text-sm">5000</span></div>
     </div>
 </div>
 
@@ -119,9 +89,7 @@
     let anims = [];
     let isForcedWin = false;
     let winSymbol = null;
-    const SYMBOL_HEIGHT = 80;
 
-    // Inicializa os rolos
     function init() {
         const container = document.getElementById('reelsContainer');
         container.innerHTML = '';
@@ -135,15 +103,14 @@
                     <button id="stop${i}" onclick="stopReel(${i})" class="btn-stop" disabled>STOP</button>
                 </div>`;
             const strip = document.getElementById(`strip${i}`);
-            // Lista longa para efeito de loop
-            const longList = [...EMOJIS, ...EMOJIS, ...EMOJIS, ...EMOJIS, ...EMOJIS];
-            strip.innerHTML = longList.map((s) => 
-                `<div class="symbol" style="height:${SYMBOL_HEIGHT}px">${s}</div>`
+            // Criando uma fita longa para o loop parecer infinito
+            const longList = [...EMOJIS, ...EMOJIS, ...EMOJIS, ...EMOJIS];
+            strip.innerHTML = longList.map((s, idx) => 
+                `<div class="symbol" data-index="${idx % EMOJIS.length}">${s}</div>`
             ).join('');
         }
     }
-    
-    window.onload = init;
+    init();
 
     function startSpin() {
         if (balance < 10) return alert("Saldo insuficiente!");
@@ -152,8 +119,8 @@
         document.getElementById('balance').textContent = balance;
         document.getElementById('spinBtn').disabled = true;
 
-        // LÓGICA DE GANHO: 95% de chance
-        isForcedWin = Math.random() < 0.95; 
+        // Decide se vai ganhar nesta rodada (90% chance)
+        isForcedWin = Math.random() < 0.90;
         winSymbol = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
         results = [null, null, null, null, null, null];
 
@@ -162,7 +129,7 @@
             const strip = document.getElementById(`strip${i}`);
             strip.style.transition = "none";
             
-            // Limpa estados anteriores
+            // Reseta visual dos símbolos
             Array.from(strip.children).forEach(s => {
                 s.classList.remove('winner-focus', 'animate-win');
                 s.style.opacity = "1";
@@ -178,13 +145,14 @@
 
     function animate(i) {
         const strip = document.getElementById(`strip${i}`);
+        const symH = strip.firstElementChild.clientHeight;
         let pos = 0;
-        const speed = 30; // Velocidade do giro
+        const speed = symH * 0.4; // Velocidade do giro
 
         function step() {
             if (!spinning[i]) return;
             pos -= speed;
-            if (pos <= -(EMOJIS.length * SYMBOL_HEIGHT)) pos = 0;
+            if (pos <= -(EMOJIS.length * symH)) pos = 0;
             strip.style.transform = `translateY(${pos}px)`;
             anims[i] = requestAnimationFrame(step);
         }
@@ -201,9 +169,11 @@
         btn.classList.remove('active');
 
         const strip = document.getElementById(`strip${i}`);
+        const symH = strip.firstElementChild.clientHeight;
         const windowH = strip.parentElement.clientHeight;
-        const centerOffset = (windowH / 2) - (SYMBOL_HEIGHT / 2);
+        const centerOffset = (windowH / 2) - (symH / 2);
         
+        // Lógica de sorteio
         let targetIdx;
         if (isForcedWin) {
             targetIdx = EMOJIS.indexOf(winSymbol);
@@ -213,11 +183,11 @@
         
         results[i] = EMOJIS[targetIdx];
 
-        // Efeito de mola ao parar
-        strip.style.transition = "transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)";
-        strip.style.transform = `translateY(${centerOffset - (targetIdx * SYMBOL_HEIGHT)}px)`;
+        // Posiciona exatamente no símbolo sorteado com efeito elástico
+        strip.style.transition = "transform 0.6s cubic-bezier(0.23, 1, 0.32, 1.2)";
+        strip.style.transform = `translateY(${centerOffset - (targetIdx * symH)}px)`;
 
-        // Destaque visual
+        // Destaque visual após parar
         setTimeout(() => {
             const symbols = strip.querySelectorAll('.symbol');
             symbols.forEach((s, idx) => {
@@ -227,11 +197,11 @@
                     s.style.opacity = "0.1";
                 }
             });
-        }, 250);
+        }, 300);
 
-        // Se todos os rolos pararam, verifica o prêmio
+        // Se todos pararam, checa vitória
         if (results.every(r => r !== null)) {
-            setTimeout(checkWin, 1000);
+            setTimeout(checkWin, 800);
         }
     }
 
@@ -241,20 +211,14 @@
         
         if (allEqual) {
             balance += 5000;
-            resTitle.innerHTML = "VITÓRIA ÉPICA! 🐯<br><span class='text-green-400 text-6xl'>+5000</span>";
+            resTitle.innerHTML = "VITÓRIA ÉPICA! 🐯<br><span class='text-green-400'>+5000</span>";
             document.querySelectorAll('.winner-focus').forEach(s => s.classList.add('animate-win'));
         } else {
-            resTitle.innerHTML = "QUASE LÁ!<br><span class='text-2xl text-gray-400'>Não foi dessa vez!</span>";
+            resTitle.innerHTML = "QUASE LÁ!<br><span class='text-sm'>Tente novamente</span>";
         }
         
         document.getElementById('balance').textContent = balance;
         document.getElementById('overlay').style.display = 'flex';
     }
 
-    function closeResult() {
-        document.getElementById('overlay').style.display = 'none';
-        document.getElementById('spinBtn').disabled = false;
-    }
-</script>
-</body>
-</html>
+    function closeRes
