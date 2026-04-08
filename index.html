@@ -3,73 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Golden Strike - 95% Win</title>
+    <title>Golden Strike - Fokus Edition</title>
     <script src="https://cdn.tailwindcss.com/3.4.17"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&family=Righteous&display=swap" rel="stylesheet">
     <style>
         :root { --gold: #ffcc00; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
-        body { background: #000; color: white; font-family: 'Montserrat', sans-serif; height: 100dvh; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: manipulation; }
+        
+        body { 
+            background: #000; 
+            color: white; 
+            font-family: 'Montserrat', sans-serif; 
+            height: 100dvh; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            overflow: hidden; 
+            touch-action: manipulation; 
+        }
         
         .machine-frame {
-            width: 98vw; height: 95vh; max-width: 600px;
-            display: grid; grid-template-rows: auto 1fr auto; gap: 10px;
-            background: #111; border: 2px solid var(--gold); border-radius: 15px; padding: 12px;
+            width: 95vw; height: 90vh; max-width: 500px;
+            display: flex; flex-direction: column;
+            background: #111; border: 2px solid var(--gold); border-radius: 15px; padding: 10px;
         }
 
-        .reels-container { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; height: 100%; }
-        .reel-window { background: #050505; border: 1px solid #333; border-radius: 8px; position: relative; overflow: hidden; height: 100%; }
+        .reels-container { 
+            display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; 
+            flex-grow: 1; min-height: 0; margin: 10px 0;
+        }
+
+        .reel-window { 
+            background: #050505; border: 1px solid #333; border-radius: 5px; 
+            position: relative; overflow: hidden; height: 100%; 
+        }
         
-        .reel-strip { display: flex; flex-direction: column; will-change: transform; }
-        .symbol { 
-            height: 100px; /* Altura base para mobile */
-            display: flex; align-items: center; justify-content: center;
-            font-size: 2rem; transition: all 0.3s;
+        .reel-strip { 
+            display: flex; flex-direction: column; 
+            position: absolute; width: 100%; left: 0; top: 0;
+            will-change: transform; 
         }
 
-        .winner-focus { filter: drop-shadow(0 0 15px var(--gold)); transform: scale(1.2); z-index: 30; opacity: 1 !important; }
+        .symbol { 
+            height: 80px; /* Altura fixa para evitar congelamento de cálculo */
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .winner-focus { filter: drop-shadow(0 0 10px var(--gold)); transform: scale(1.2); z-index: 10; opacity: 1 !important; }
 
         .btn-spin { 
             background: linear-gradient(180deg, #ffcc00 0%, #b38f00 100%);
-            color: #000; padding: 15px 40px; border-radius: 40px; 
+            color: #000; padding: 15px; border-radius: 10px; 
             font-weight: 900; box-shadow: 0 4px 0 #7a6100; width: 100%;
+            text-transform: uppercase; border: none;
         }
-        .btn-spin:disabled { background: #444; color: #888; box-shadow: none; opacity: 0.7; }
+        .btn-spin:disabled { background: #444; color: #888; box-shadow: none; opacity: 0.5; }
 
-        #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; text-align: center; }
+        #overlay { 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9); 
+            display: none; flex-direction: column; justify-content: center; 
+            align-items: center; z-index: 1000; padding: 20px;
+        }
     </style>
 </head>
 <body>
 
 <div id="overlay">
-    <h1 id="res-title" class="text-4xl font-black mb-6 text-yellow-500"></h1>
-    <button onclick="closeResult()" class="btn-spin !w-auto">COLETAR</button>
+    <h1 id="res-title" class="text-3xl font-black mb-6 text-yellow-500 text-center"></h1>
+    <button onclick="closeResult()" class="btn-spin !w-48">COLETAR</button>
 </div>
 
 <div class="machine-frame">
-    <div class="flex justify-between items-center">
-        <h2 class="font-righteous text-yellow-500 text-sm">GOLDEN STRIKE</h2>
+    <div class="flex justify-between items-center px-1">
+        <h2 class="font-righteous text-yellow-500 text-xs">GOLDEN STRIKE</h2>
         <div class="text-right">
-            <span class="text-[10px] text-gray-400 block">SALDO</span>
-            <span id="balance" class="text-green-400 font-bold text-xl">1000</span>
+            <span id="balance" class="text-green-400 font-bold text-lg">1000</span>
         </div>
     </div>
 
     <div class="reels-container" id="reelsContainer"></div>
 
-    <div class="p-2">
-        <button id="spinBtn" onclick="startSpin()" class="btn-spin">GIRAR (BET 10)</button>
-    </div>
+    <button id="spinBtn" onclick="startSpin()" class="btn-spin">GIRAR</button>
 </div>
 
 <script>
     const EMOJIS = ['🍒', '💎', '7️⃣', '🔔', '⭐', '🍋'];
+    const SYMBOL_HEIGHT = 80; // Hardcoded para estabilidade mobile
     let balance = 1000;
-    let spinning = [false, false, false, false, false, false];
-    let results = [null, null, null, null, null, null];
-    let isForcedWin = false;
-    let winSymbol = null;
-    let SYMBOL_HEIGHT = 100;
+    let isSpinning = false;
+    let results = [];
+    let animationFrames = [];
 
     function init() {
         const container = document.getElementById('reelsContainer');
@@ -77,85 +101,82 @@
         for (let i = 0; i < 6; i++) {
             container.innerHTML += `
                 <div class="reel-window">
-                    <div id="strip${i}" class="reel-strip"></div>
+                    <div id="strip${i}" class="reel-strip" style="transform: translateY(0px)"></div>
                 </div>`;
             const strip = document.getElementById(`strip${i}`);
-            const longList = [...EMOJIS, ...EMOJIS, ...EMOJIS, ...EMOJIS, ...EMOJIS];
+            // Criar uma fita longa o suficiente
+            const longList = [...EMOJIS, ...EMOJIS, ...EMOJIS, ...EMOJIS, ...EMOJIS, ...EMOJIS];
             strip.innerHTML = longList.map(s => `<div class="symbol">${s}</div>`).join('');
         }
-        // Ajusta altura real do símbolo baseado no container
-        setTimeout(() => {
-            const firstSym = document.querySelector('.symbol');
-            if(firstSym) SYMBOL_HEIGHT = firstSym.offsetHeight;
-        }, 100);
     }
     
     window.onload = init;
 
     async function startSpin() {
-        if (balance < 10) return alert("Sem saldo!");
+        if (isSpinning || balance < 10) return;
         
+        isSpinning = true;
         balance -= 10;
         document.getElementById('balance').textContent = balance;
         document.getElementById('spinBtn').disabled = true;
 
-        // CHANCE DE 95%
-        isForcedWin = Math.random() < 0.95; 
-        winSymbol = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
-        results = [null, null, null, null, null, null];
+        const isForcedWin = Math.random() < 0.95;
+        const winSymbol = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
+        results = [];
 
-        // Inicia todos girando
+        // Inicia animação
         for (let i = 0; i < 6; i++) {
-            spinning[i] = true;
-            document.getElementById(`strip${i}`).style.transition = "none";
-            animate(i);
+            const strip = document.getElementById(`strip${i}`);
+            strip.style.transition = "none";
+            results[i] = isForcedWin ? winSymbol : EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
+            runAnimation(i);
         }
 
-        // Parada automática em cascata (essencial para funcionar no mobile)
+        // Para os rolos um por um
         for (let i = 0; i < 6; i++) {
-            await new Promise(r => setTimeout(r, 400)); // Espera 0.4s entre cada rolo
-            stopReel(i);
+            await new Promise(r => setTimeout(r, 400));
+            stopReel(i, results[i]);
         }
     }
 
-    function animate(i) {
+    function runAnimation(i) {
         const strip = document.getElementById(`strip${i}`);
         let pos = 0;
-        const speed = 20; 
-        function step() {
-            if (!spinning[i]) return;
+        const speed = 15;
+        
+        function animate() {
+            if (!isSpinning && results[i] === null) return; 
             pos -= speed;
             if (pos <= -(EMOJIS.length * SYMBOL_HEIGHT)) pos = 0;
             strip.style.transform = `translateY(${pos}px)`;
-            requestAnimationFrame(step);
+            animationFrames[i] = requestAnimationFrame(animate);
         }
-        requestAnimationFrame(step);
+        animate();
     }
 
-    function stopReel(i) {
-        spinning[i] = false;
+    function stopReel(i, targetEmoji) {
+        cancelAnimationFrame(animationFrames[i]);
         const strip = document.getElementById(`strip${i}`);
         const windowH = strip.parentElement.clientHeight;
         const centerOffset = (windowH / 2) - (SYMBOL_HEIGHT / 2);
         
-        const targetIdx = isForcedWin ? EMOJIS.indexOf(winSymbol) : Math.floor(Math.random() * EMOJIS.length);
-        results[i] = EMOJIS[targetIdx];
-
-        strip.style.transition = "transform 0.8s cubic-bezier(0.25, 0.1, 0.25, 1)";
+        const targetIdx = EMOJIS.indexOf(targetEmoji);
+        
+        strip.style.transition = "transform 0.6s cubic-bezier(0.23, 1, 0.32, 1)";
         strip.style.transform = `translateY(${centerOffset - (targetIdx * SYMBOL_HEIGHT)}px)`;
 
+        // Highlight
         setTimeout(() => {
             const symbols = strip.querySelectorAll('.symbol');
             symbols.forEach((s, idx) => {
                 if (idx === targetIdx) s.classList.add('winner-focus');
-                else s.style.opacity = "0.1";
+                else s.style.opacity = "0.2";
             });
-            
-            if (i === 5) setTimeout(checkWin, 500);
-        }, 850);
+            if (i === 5) finishGame();
+        }, 600);
     }
 
-    function checkWin() {
+    function finishGame() {
         const allEqual = results.every(val => val === results[0]);
         const resTitle = document.getElementById('res-title');
         
@@ -167,13 +188,16 @@
         }
         
         document.getElementById('balance').textContent = balance;
-        document.getElementById('overlay').style.display = 'flex';
+        setTimeout(() => {
+            document.getElementById('overlay').style.display = 'flex';
+        }, 500);
     }
 
     function closeResult() {
         document.getElementById('overlay').style.display = 'none';
         document.getElementById('spinBtn').disabled = false;
-        init(); // Reseta visual para a próxima
+        isSpinning = false;
+        init();
     }
 </script>
 </body>
